@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+data/*.ics
+credentials.json
+token.json
+.DS_Store
+
+# Screenshot containing Blackboard application key and secret
+cca6d3d6-98a5-43cc-8777-d232081f9026.png
