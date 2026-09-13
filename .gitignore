@@ -9,3 +9,7 @@ token.json
 
 # Screenshot containing Blackboard application key and secret
 cca6d3d6-98a5-43cc-8777-d232081f9026.png
+
+# launchd scheduler files: absolute paths make these machine-specific
+com.studysync.sync.plist
+logs/
