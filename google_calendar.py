@@ -164,6 +164,77 @@ def sync_assignments(service, assignments):
         sync_assignment(service, assignment)
 
 
+def get_blackboard_id(event):
+    private = event.get("extendedProperties", {}).get("private", {})
+
+    return private.get("blackboard_id")
+
+
+def get_studysync_events(service):
+    studysync_events = []
+    page_token = None
+
+    while True:
+        response = service.events().list(
+            calendarId="primary",
+            singleEvents=True,
+            maxResults=250,
+            pageToken=page_token
+        ).execute()
+
+        for event in response.get("items", []):
+            # only events StudySync created carry a blackboard_id
+            if get_blackboard_id(event):
+                studysync_events.append(event)
+
+        page_token = response.get("nextPageToken")
+
+        if not page_token:
+            return studysync_events
+
+
+def find_orphaned_events(service, assignments):
+    assignment_ids = set()
+
+    for assignment in assignments:
+        assignment_ids.add(assignment.id)
+
+    # the Blackboard feed only lists upcoming work, so a past event is
+    # missing from that list for a harmless reason and is never an orphan
+    now = datetime.now().astimezone()
+
+    orphaned_events = []
+
+    for event in get_studysync_events(service):
+        start = read_event_time(event.get("start", {}))
+
+        if start is None:
+            print(f"Skipped orphan check for event with unreadable start time: {event.get('summary')}")
+            continue
+
+        if start < now:
+            continue
+
+        if get_blackboard_id(event) not in assignment_ids:
+            orphaned_events.append(event)
+
+    return orphaned_events
+
+
+def report_orphaned_events(service, assignments):
+    orphaned_events = find_orphaned_events(service, assignments)
+
+    if not orphaned_events:
+        print("No orphaned calendar events found.")
+
+        return orphaned_events
+
+    for event in orphaned_events:
+        print(f"Orphaned calendar event: {event.get('summary')}")
+
+    return orphaned_events
+
+
 if __name__ == "__main__":
     service = get_calendar_service()
     print("Connected to Google Calendar!")
