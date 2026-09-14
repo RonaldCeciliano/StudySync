@@ -48,7 +48,7 @@ def create_assignment_event(service, assignment):
         },
 
         "extendedProperties": {
-            "private": {
+            "shared": {
                 "blackboard_id": assignment.id
             }
         },
@@ -65,7 +65,7 @@ def create_assignment_event(service, assignment):
 def find_assignment_event(service, assignment_id):
     response = service.events().list(
         calendarId="primary",
-        privateExtendedProperty=f"blackboard_id={assignment_id}",
+        sharedExtendedProperty=f"blackboard_id={assignment_id}",
         maxResults=1,
         singleEvents=True
     ).execute()
@@ -122,7 +122,7 @@ def update_assignment_event(service, existing_event, assignment):
         },
 
         "extendedProperties": {
-            "private": {
+            "shared": {
                 "blackboard_id": assignment.id
             }
         },
@@ -165,9 +165,10 @@ def sync_assignments(service, assignments):
 
 
 def get_blackboard_id(event):
-    private = event.get("extendedProperties", {}).get("private", {})
+    # shared properties survive events().move, private ones do not
+    shared = event.get("extendedProperties", {}).get("shared", {})
 
-    return private.get("blackboard_id")
+    return shared.get("blackboard_id")
 
 
 def get_studysync_events(service):
@@ -233,6 +234,39 @@ def report_orphaned_events(service, assignments):
         print(f"Orphaned calendar event: {event.get('summary')}")
 
     return orphaned_events
+
+
+def find_calendar_by_name(service, calendar_name):
+    page_token = None
+
+    while True:
+        response = service.calendarList().list(pageToken=page_token).execute()
+
+        for calendar in response.get("items", []):
+            if calendar.get("summary") == calendar_name:
+                return calendar
+
+        page_token = response.get("nextPageToken")
+
+        if not page_token:
+            return None
+
+
+def get_or_create_studysync_calendar(service):
+    # look first so we never end up with two StudySync calendars
+    existing_calendar = find_calendar_by_name(service, "StudySync")
+
+    if existing_calendar:
+        return existing_calendar["id"]
+
+    created_calendar = service.calendars().insert(
+        body={
+            "summary": "StudySync",
+            "description": "Assignments synced from Blackboard by StudySync.",
+        }
+    ).execute()
+
+    return created_calendar["id"]
 
 
 if __name__ == "__main__":
