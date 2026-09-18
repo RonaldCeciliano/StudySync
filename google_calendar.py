@@ -1,5 +1,6 @@
 import os
 
+from dotenv import load_dotenv
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -7,6 +8,12 @@ from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
+
+load_dotenv()
+STUDYSYNC_CALENDAR_ID = os.getenv("STUDYSYNC_CALENDAR_ID")
+
+if not STUDYSYNC_CALENDAR_ID:
+    raise ValueError("STUDYSYNC_CALENDAR_ID is missing from .env")
 
 
 def get_calendar_service():
@@ -55,7 +62,7 @@ def create_assignment_event(service, assignment):
     }
 
     created_event = service.events().insert(
-        calendarId="primary",
+        calendarId=STUDYSYNC_CALENDAR_ID,
         body=event
     ).execute()
 
@@ -64,7 +71,7 @@ def create_assignment_event(service, assignment):
 
 def find_assignment_event(service, assignment_id):
     response = service.events().list(
-        calendarId="primary",
+        calendarId=STUDYSYNC_CALENDAR_ID,
         sharedExtendedProperty=f"blackboard_id={assignment_id}",
         maxResults=1,
         singleEvents=True
@@ -129,7 +136,7 @@ def update_assignment_event(service, existing_event, assignment):
     }
 
     updated_event = service.events().update(
-        calendarId="primary",
+        calendarId=STUDYSYNC_CALENDAR_ID,
         eventId=existing_event["id"],
         body=event
     ).execute()
@@ -177,7 +184,7 @@ def get_studysync_events(service):
 
     while True:
         response = service.events().list(
-            calendarId="primary",
+            calendarId=STUDYSYNC_CALENDAR_ID,
             singleEvents=True,
             maxResults=250,
             pageToken=page_token
