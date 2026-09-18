@@ -72,13 +72,9 @@ StudySync/
 ├── courses.py                    # Maps assignment titles to course codes and names
 ├── models.py                     # Assignment dataclass
 ├── google_calendar.py            # OAuth, event create/update/lookup, orphan detection
-├── blackboard_metadata_test.py   # Exploration script from the Blackboard REST API attempt
-├── blackboard_oauth_test.py      # Exploration script from the Blackboard REST API attempt
 ├── requirements.txt              # Pinned dependencies
 └── .gitignore                    # Excludes credentials, tokens, logs, and local scheduler files
 ```
-
-The two `*_test.py` files are exploration scripts retained from the original Blackboard REST API approach described under Technical Challenges. They are not part of the synchronization pipeline.
 
 ## Setup
 
