@@ -1,3 +1,4 @@
+import logging
 import os
 import requests
 from dotenv import load_dotenv
@@ -9,6 +10,27 @@ from courses import get_course_for_assignment, COURSES
 
 load_dotenv()
 BLACKBOARD_ICS_URL = os.getenv("BLACKBOARD_ICS_URL")
+logger = logging.getLogger(__name__)
+
+
+def parse_assignment_due_date(component):
+    dtstart = component.get("dtstart")
+    due_date = getattr(dtstart, "dt", None)
+
+    if dtstart is None:
+        reason = "missing DTSTART"
+    elif not isinstance(due_date, datetime):
+        reason = "DTSTART must include a valid date and time"
+    elif due_date.utcoffset() is None:
+        reason = "DTSTART has no timezone"
+    else:
+        return due_date
+
+    logger.warning(
+        "Skipping assignment %s (%s): %s",
+        component.get("uid"), component.get("summary"), reason,
+    )
+    return None
 
 def load_calendar():
     if not BLACKBOARD_ICS_URL:
@@ -33,7 +55,10 @@ def get_assignments():
 
            if "GradableItem" in uid:
                 title = component.get("summary")
-                due_date = component.get("dtstart").dt
+                due_date = parse_assignment_due_date(component)
+
+                if due_date is None:
+                    continue
 
                 if due_date >= now:
                     course_code = get_course_for_assignment(str(title))
